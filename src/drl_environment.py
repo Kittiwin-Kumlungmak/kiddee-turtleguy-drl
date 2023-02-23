@@ -3,6 +3,7 @@ import numpy
 import sys
 import copy
 from numpy.core.numeric import Infinity
+import numpy as np
 
 from geometry_msgs.msg import Pose, Twist
 from rosgraph_msgs.msg import Clock
@@ -41,7 +42,6 @@ OBSTACLE_RADIUS             = 0.16
 MAX_NUMBER_OBSTACLES        = 6
 
 
-
 ARENA_LENGTH    = 4.2
 ARENA_WIDTH     = 4.2
 MAX_GOAL_DISTANCE = math.sqrt(ARENA_LENGTH**2 + ARENA_WIDTH**2)
@@ -55,8 +55,9 @@ class DRLEnvironment(Node):
         print(f"running on stage: {self.stage}")
         self.episode_timeout = EPISODE_TIMEOUT_SECONDS
 	
-        self.mudang_destx = 3.5 #-3.56
-        self.mudang_desty = 0.0 #-3.47
+        self.mudang_destx = 3.65 #-3.56
+        self.mudang_desty = 3.65 #-3.47
+
         
         self.scan_topic = 'scan'
         self.vel_topic = 'cmd_vel'
@@ -216,6 +217,13 @@ class DRLEnvironment(Node):
                 self.get_logger().info('fail service not available, waiting again...')
             self.task_fail_client.call_async(req)
 
+    def check_obstacle(self):
+        goal_angle = int(math.degrees(self.goal_angle))
+        gate = True
+        for i in np.array(self.raw_scan[goal_angle-4:goal_angle+4]):
+            if i<0.2:
+                gate = False
+
     def get_state(self, action_linear_previous, action_angular_previous):
         state = copy.deepcopy(self.scan_ranges)                                             # range: [ 0, 1]
         state.append(float(numpy.clip((self.goal_distance / MAX_GOAL_DISTANCE), 0, 1)))     # range: [ 0, 1]
@@ -239,6 +247,9 @@ class DRLEnvironment(Node):
                     twist.angular.y = 0.0
                     twist.angular.z = 0.0
                     self.cmd_vel_pub.publish(twist)
+            elif (self.mudang_goaldist < MINIMUM_GOAL_DISTANCE +  0.2) and self.check_obstacle():
+                #really fk near goal 
+                self.robotFeedbackControl()
                 
             # Collision
             '''elif self.obstacle_distance < MINIMUM_COLLISION_DISTANCE:
@@ -263,6 +274,55 @@ class DRLEnvironment(Node):
             if self.succeed is not UNKNOWN:
                 self.stop_reset_robot(self.succeed == SUCCESS)'''
         return state
+
+
+
+        # Feedback Control Algorithm
+    def robotFeedbackControl(self):
+        # theta goal normalization
+        K_RO = 2
+        K_ALPHA = 15
+        K_BETA = -3
+        V_CONST = 0.1 # [m/s]
+
+        velPub=self.cmd_vel_pub
+        x = self.robot_x
+        y = self.robot_y
+        theta = self.robot_heading
+        x_goal = self.mudang_destx
+        y_goal = self.mudang_desty
+        theta_goal = self.goal_angle
+
+        if theta_goal >= math.pi:
+            theta_goal_norm = theta_goal - 2 * math.pi
+        else:
+            theta_goal_norm = theta_goal
+
+        ro = math.sqrt( math.pow( ( x_goal - x ) , 2 ) + math.pow( ( y_goal - y ) , 2) )
+        lamda = math.atan2( y_goal - y , x_goal - x )
+
+        alpha = (lamda -  theta + math.pi) % (2 * math.pi) - math.pi
+        beta = (theta_goal - lamda + math.pi) % (2 * math.pi) - math.pi
+
+        
+        status = 'Goal position not reached!'
+        v = K_RO * ro
+        w = K_ALPHA * alpha + K_BETA * beta
+        v_scal = v / abs(v) * V_CONST
+        w_scal = w / abs(v) * V_CONST
+        
+        velMsg = Twist()
+        velMsg.linear.x = v_scal
+        velMsg.linear.y = 0.
+        velMsg.linear.z = 0.
+        velMsg.angular.x = 0.
+        velMsg.angular.y = 0.
+        velMsg.angular.z = w_scal
+        velPub.publish(velMsg)
+
+        print("Head to the goal")
+
+
 
     def initalize_episode(self, response):
         self.initial_distance_to_goal = self.goal_distance

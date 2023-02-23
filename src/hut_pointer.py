@@ -26,7 +26,7 @@ class MinimalPublisher(Node):
         self.timer_period = 0.1 # seconds
         self.i = 0
         self.start = True
-        self.goal = [3.5, 0.0] #[-3.56,-3.47]
+        self.goal = [3.65, 3.65] #[-3.56,-3.47]
         self.num_msg = None
 
     def scan_callback(self, msg):
