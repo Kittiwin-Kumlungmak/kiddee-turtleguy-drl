@@ -142,6 +142,10 @@ def get_simulation_speed(stage):
     
 
 import numpy as np
+from scipy import signal as s
+def ray_resam(lidar):
+    x = s.resample_poly(np.array(lidar),4,45)
+    return x
 
 def ray_renorm(lidar_measurements):
     # 450 LiDAR measurements, with angles in degrees and distances in meters

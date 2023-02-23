@@ -169,6 +169,7 @@ class DRLEnvironment(Node):
     def scan_callback(self, msg):
         #print(msg.ranges,'\n','----------------------')
         #num_msg = msg.ranges
+        #num_msg = util.ray_resam(msg.ranges)
         num_msg = util.ray_renorm(msg.ranges)
         if len(num_msg) != NUM_SCAN_SAMPLES:
             print('NUMBER OF RAYS',type(msg.ranges))
