@@ -26,7 +26,7 @@ class MinimalPublisher(Node):
         self.timer_period = 0.1 # seconds
         self.i = 0
         self.start = True
-        self.goal = [3.58,3.47]
+        self.goal = [3.5, 0.0] #[-3.56,-3.47]
         self.num_msg = None
 
     def scan_callback(self, msg):
@@ -44,7 +44,7 @@ class MinimalPublisher(Node):
         self.stack_odom(self.robot_x,self.robot_y)
         #time.sleep(self.timer_period)
 
-        '''
+        
         if not self.start:
             if len(self.odom_stack) >= self.MIN_ODOM_STACK_LEN:
                 if not self.near_goal():
@@ -85,13 +85,6 @@ class MinimalPublisher(Node):
             self.goal_pose_pub.publish(goal_pose)
             time.sleep(0.1)
             self.start = False
-        '''
-        best_goal = self.find_best_subgoal()
-        goal_pose = Pose()
-        goal_pose.position.x = best_goal[0]
-        goal_pose.position.y = best_goal[1]
-        self.goal_pose_pub.publish(goal_pose)
-        time.sleep(0.1)
 
 
 #--------------------------------------------------------------------------------------------------------------------------------------

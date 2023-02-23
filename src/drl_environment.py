@@ -36,7 +36,7 @@ ROBOT_MAX_LIDAR_VALUE   = 16
 MAX_LIDAR_VALUE         = 3.5
 
 MINIMUM_COLLISION_DISTANCE  = 0.13
-MINIMUM_GOAL_DISTANCE       = 0.05
+MINIMUM_GOAL_DISTANCE       = 0.10
 OBSTACLE_RADIUS             = 0.16
 MAX_NUMBER_OBSTACLES        = 6
 
@@ -55,8 +55,8 @@ class DRLEnvironment(Node):
         print(f"running on stage: {self.stage}")
         self.episode_timeout = EPISODE_TIMEOUT_SECONDS
 	
-        self.mudang_destx = 3.65
-        self.mudang_desty = -3.65
+        self.mudang_destx = 3.5 #-3.56
+        self.mudang_desty = 0.0 #-3.47
         
         self.scan_topic = 'scan'
         self.vel_topic = 'cmd_vel'
@@ -232,6 +232,10 @@ class DRLEnvironment(Node):
                     self.succeed = SUCCESS
                     twist = Twist()
                     twist.linear.x = 0.0
+                    twist.linear.y = 0.0
+                    twist.linear.z = 0.0
+                    twist.angular.x = 0.0
+                    twist.angular.y = 0.0
                     twist.angular.z = 0.0
                     self.cmd_vel_pub.publish(twist)
                 
