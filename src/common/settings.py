@@ -34,7 +34,7 @@ POLICY_UPDATE_FREQUENCY = 2
 # drl_environment
 REWARD_FUNCTION = "A"           # Defined in reward.py
 EPISODE_TIMEOUT_SECONDS = 50    # Number of seconds after which episode timeout occurs
-ENABLE_MOTOR_NOISE = False      # Add normally distributed noise to motor output to simulate hardware imperfections
+ENABLE_MOTOR_NOISE = True      # Add normally distributed noise to motor output to simulate hardware imperfections
 
 # Stacking
 STACK_DEPTH = 3                 # Number of subsequent frames processed per step

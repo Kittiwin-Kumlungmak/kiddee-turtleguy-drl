@@ -11,22 +11,22 @@ import time
 
 class MinimalPublisher(Node):
     def __init__(self):
-        super().__init__('minimal_publisher')
+        super().__init__('hut_node')
     
         qos = QoSProfile(depth=10)
         qos_clock = QoSProfile(depth=1)
         self.goal_pose_pub = self.create_publisher(Pose, 'goal_pose', QoSProfile(depth=10))
-        self.MIN_REQUIRED = 0.30
+        self.MIN_REQUIRED = 0.5
         self.MAX_LIDAR_RANGE = 2.0
         self.MIN_ODOM_STACK_LEN = 30
         self.odom_stack = deque(maxlen=self.MIN_ODOM_STACK_LEN)
         self.odom_topic = '/odom'
         self.scan_sub = self.create_subscription(LaserScan, '/scan', self.scan_callback, qos_profile=qos_profile_sensor_data)
         self.odom_sub = self.create_subscription(Odometry, self.odom_topic, self.odom_callback, qos)
-        self.timer_period = 0.21 # seconds
+        self.timer_period = 0.1 # seconds
         self.i = 0
         self.start = True
-        self.goal = [3.65,2.0]
+        self.goal = [3.58,3.47]
         self.num_msg = None
 
     def scan_callback(self, msg):
@@ -38,47 +38,60 @@ class MinimalPublisher(Node):
         self.robot_x = msg.pose.pose.position.x
         self.robot_y = msg.pose.pose.position.y
         _, _, self.robot_heading = util.euler_from_quaternion(msg.pose.pose.orientation)
-        # self.robot_tilt = msg.pose.pose.orientation.y
-
-        # calculate traveled distance for logging
-        # if self.local_step % 32 == 0:
-        #     self.total_distance += math.sqrt((self.robot_x_prev - self.robot_x)**2 + (self.robot_y_prev - self.robot_y)**2)
-        #     self.robot_x_prev = self.robot_x
-        #     self.robot_y_prev = self.robot_y
-
-        # diff_y = self.goal_y - self.robot_y
-        # diff_x = self.goal_x - self.robot_x
-        # distance_to_goal = math.sqrt(diff_x**2 + diff_y**2)
-        # heading_to_goal = math.atan2(diff_y, diff_x)
-        # goal_angle = heading_to_goal - self.robot_heading
-
-        # while goal_angle > math.pi:
-        #     goal_angle -= 2 * math.pi
-        # while goal_angle < -math.pi:
-        #     goal_angle += 2 * math.pi
-
-        # self.goal_distance = distance_to_goal
-        # self.goal_angle = goal_angle
 
         # Moodang
-        print('odom_st: ', len(self.odom_stack))
+        #print('odom_st: ', len(self.odom_stack))
         self.stack_odom(self.robot_x,self.robot_y)
-        time.sleep(self.timer_period)
-        if len(self.odom_stack) >= self.MIN_ODOM_STACK_LEN:
-            print('check_loop: ',self.check_loop(self.odom_stack, self.MIN_REQUIRED))
-            if self.check_loop(self.odom_stack, self.MIN_REQUIRED) or self.start:
-                best_goal = self.find_best_subgoal()
-                goal_pose = Pose()
-                goal_pose.position.x = best_goal[0]
-                goal_pose.position.y = best_goal[1]
-                self.goal_pose_pub.publish(goal_pose)
-                time.sleep(5)
-                self.start = False
+        #time.sleep(self.timer_period)
+
+        '''
+        if not self.start:
+            if len(self.odom_stack) >= self.MIN_ODOM_STACK_LEN:
+                if not self.near_goal():
+                    if self.check_loop(self.odom_stack, self.MIN_REQUIRED):
+                        best_goal = self.find_best_subgoal()
+                        goal_pose = Pose()
+                        goal_pose.position.x = best_goal[0]
+                        goal_pose.position.y = best_goal[1]
+                        self.goal_pose_pub.publish(goal_pose)
+                        time.sleep(0.1)
+                        print('I am in a loop')
+                    else:
+                        goal_pose = Pose()
+                        goal_pose.position.x = self.goal[0]
+                        goal_pose.position.y = self.goal[1]
+                        self.goal_pose_pub.publish(goal_pose)
+                        time.sleep(0.1)
+                        print('I am going to goal')
+                else:
+                    goal_pose = Pose()
+                    goal_pose.position.x = self.goal[0]
+                    goal_pose.position.y = self.goal[1]
+                    self.goal_pose_pub.publish(goal_pose)
+                    time.sleep(0.1)
+                    print('I am near goal')
             else:
+                print('my odom stack is not full yet')
                 goal_pose = Pose()
                 goal_pose.position.x = self.goal[0]
                 goal_pose.position.y = self.goal[1]
                 self.goal_pose_pub.publish(goal_pose)
+                time.sleep(0.1)
+        else:
+            print('I am at the starting point')
+            goal_pose = Pose()
+            goal_pose.position.x = self.goal[0]
+            goal_pose.position.y = self.goal[1]
+            self.goal_pose_pub.publish(goal_pose)
+            time.sleep(0.1)
+            self.start = False
+        '''
+        best_goal = self.find_best_subgoal()
+        goal_pose = Pose()
+        goal_pose.position.x = best_goal[0]
+        goal_pose.position.y = best_goal[1]
+        self.goal_pose_pub.publish(goal_pose)
+        time.sleep(0.1)
 
 
 #--------------------------------------------------------------------------------------------------------------------------------------
@@ -193,6 +206,14 @@ class MinimalPublisher(Node):
         if self.find_max_distance(l) > min_require:
             return 0   #not loop
         return 1       #loop
+        
+#-----------------------------------------------------------------------------------------------------
+
+    def near_goal(self):
+        if math.dist((self.robot_x,self.robot_y), (self.goal[0],self.goal[1])) <= 0.5:
+            return 1
+        else :
+            return 0
     
 
 def main(args=None):

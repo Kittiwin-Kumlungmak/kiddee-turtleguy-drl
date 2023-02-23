@@ -56,7 +56,7 @@ class DRLEnvironment(Node):
         self.episode_timeout = EPISODE_TIMEOUT_SECONDS
 	
         self.mudang_destx = 3.65
-        self.mudang_desty = 2.0
+        self.mudang_desty = -3.65
         
         self.scan_topic = 'scan'
         self.vel_topic = 'cmd_vel'
@@ -273,8 +273,8 @@ class DRLEnvironment(Node):
             return self.initalize_episode(response)
 
         if ENABLE_MOTOR_NOISE:
-            request.action[LINEAR] += numpy.clip(numpy.random.normal(0, 0.05), -0.1, 0.1)
-            request.action[ANGULAR] += numpy.clip(numpy.random.normal(0, 0.05), -0.1, 0.1)
+            request.action[LINEAR] += numpy.clip(numpy.random.normal(-1, 1), -0.1, 0.1)
+            request.action[ANGULAR] += numpy.clip(numpy.random.normal(-1, 1), -0.1, 0.1)
 
         # Un-normalize actions
         if ENABLE_BACKWARD:
