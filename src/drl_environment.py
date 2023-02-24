@@ -236,7 +236,7 @@ class DRLEnvironment(Node):
             self.mudang_goaldist = math.dist((self.robot_x,self.robot_y), (self.mudang_destx,self.mudang_desty))
             # Success
             if self.mudang_goaldist < MINIMUM_GOAL_DISTANCE : #and ((self.robot_x < 0.3 + self.mudang_destx) and (self.robot_x > 0.3 - self.mudang_destx)) and ((self.robot_y < 0.3 + self.mudang_desty) and (self.robot_y > 0.3 - self.mudang_desty))
-            	for i in range(100):
+            	while True:
                     print("Outcome: Goal reached! :)")
                     self.succeed = SUCCESS
                     twist = Twist()
