@@ -37,7 +37,7 @@ ROBOT_MAX_LIDAR_VALUE   = 16
 MAX_LIDAR_VALUE         = 3.5
 
 MINIMUM_COLLISION_DISTANCE  = 0.13
-MINIMUM_GOAL_DISTANCE       = 0.10
+MINIMUM_GOAL_DISTANCE       = 0.05
 OBSTACLE_RADIUS             = 0.16
 MAX_NUMBER_OBSTACLES        = 6
 
@@ -55,8 +55,8 @@ class DRLEnvironment(Node):
         print(f"running on stage: {self.stage}")
         self.episode_timeout = EPISODE_TIMEOUT_SECONDS
 	
-        self.mudang_destx = 3.65 #-3.56
-        self.mudang_desty = 3.65 #-3.47
+        self.mudang_destx = 3.70 #-3.56
+        self.mudang_desty = -3.70 #-3.47
 
         
         self.scan_topic = 'scan'
@@ -119,7 +119,6 @@ class DRLEnvironment(Node):
     ** Callback functions and relevant functions
     *******************************************************************************"""
 
-    '''Fix subgoal termination here!!!'''
     def goal_pose_callback(self, msg):
         self.goal_x = msg.position.x
         self.goal_y = msg.position.y
@@ -171,6 +170,7 @@ class DRLEnvironment(Node):
         #print(msg.ranges,'\n','----------------------')
         #num_msg = msg.ranges
         #num_msg = util.ray_resam(msg.ranges)
+        self.raw_scan = msg.ranges
         num_msg = util.ray_renorm(msg.ranges)
         if len(num_msg) != NUM_SCAN_SAMPLES:
             print('NUMBER OF RAYS',type(msg.ranges))
@@ -219,10 +219,10 @@ class DRLEnvironment(Node):
 
     def check_obstacle(self):
         goal_angle = int(math.degrees(self.goal_angle))
-        gate = True
         for i in np.array(self.raw_scan[goal_angle-4:goal_angle+4]):
             if i<0.2:
-                gate = False
+                return True
+            return False
 
     def get_state(self, action_linear_previous, action_angular_previous):
         state = copy.deepcopy(self.scan_ranges)                                             # range: [ 0, 1]
@@ -236,7 +236,7 @@ class DRLEnvironment(Node):
             self.mudang_goaldist = math.dist((self.robot_x,self.robot_y), (self.mudang_destx,self.mudang_desty))
             # Success
             if self.mudang_goaldist < MINIMUM_GOAL_DISTANCE : #and ((self.robot_x < 0.3 + self.mudang_destx) and (self.robot_x > 0.3 - self.mudang_destx)) and ((self.robot_y < 0.3 + self.mudang_desty) and (self.robot_y > 0.3 - self.mudang_desty))
-            	while True:
+            	for i in range(100):
                     print("Outcome: Goal reached! :)")
                     self.succeed = SUCCESS
                     twist = Twist()
@@ -247,7 +247,7 @@ class DRLEnvironment(Node):
                     twist.angular.y = 0.0
                     twist.angular.z = 0.0
                     self.cmd_vel_pub.publish(twist)
-            elif (self.mudang_goaldist < MINIMUM_GOAL_DISTANCE +  0.2) and self.check_obstacle():
+            elif (self.mudang_goaldist < MINIMUM_GOAL_DISTANCE +  0.3) and not self.check_obstacle():
                 #really fk near goal 
                 self.robotFeedbackControl()
                 

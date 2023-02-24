@@ -12,7 +12,7 @@ import time
 class MinimalPublisher(Node):
     def __init__(self):
         super().__init__('hut_node')
-    
+        # print("555555555555555555555555555")
         qos = QoSProfile(depth=10)
         qos_clock = QoSProfile(depth=1)
         self.goal_pose_pub = self.create_publisher(Pose, 'goal_pose', QoSProfile(depth=10))
@@ -24,26 +24,18 @@ class MinimalPublisher(Node):
         self.scan_sub = self.create_subscription(LaserScan, '/scan', self.scan_callback, qos_profile=qos_profile_sensor_data)
         self.odom_sub = self.create_subscription(Odometry, self.odom_topic, self.odom_callback, qos)
         self.timer_period = 0.1 # seconds
-        self.i = 0
         self.start = True
-        self.goal = [3.65, 3.65] #[-3.56,-3.47]
+        self.goal = [3.70, -3.70] #[-3.56,-3.47]
         self.num_msg = None
+        self.timer = self.create_timer(self.timer_period, self.timer_callback)
+        self.robot_x = 0.0
+        self.robot_y = 0.0
 
-    def scan_callback(self, msg):
-        #print(msg.ranges,'\n','----------------------')
-        #num_msg = msg.ranges
-        self.num_msg = [min(range, self.MAX_LIDAR_RANGE) for range in msg.ranges]
-
-    def odom_callback(self, msg):
-        self.robot_x = msg.pose.pose.position.x
-        self.robot_y = msg.pose.pose.position.y
-        _, _, self.robot_heading = util.euler_from_quaternion(msg.pose.pose.orientation)
-
+    def timer_callback(self):
+        pass
         # Moodang
         #print('odom_st: ', len(self.odom_stack))
         self.stack_odom(self.robot_x,self.robot_y)
-        #time.sleep(self.timer_period)
-
         
         if not self.start:
             if len(self.odom_stack) >= self.MIN_ODOM_STACK_LEN:
@@ -54,21 +46,18 @@ class MinimalPublisher(Node):
                         goal_pose.position.x = best_goal[0]
                         goal_pose.position.y = best_goal[1]
                         self.goal_pose_pub.publish(goal_pose)
-                        time.sleep(0.1)
                         print('I am in a loop')
                     else:
                         goal_pose = Pose()
                         goal_pose.position.x = self.goal[0]
                         goal_pose.position.y = self.goal[1]
                         self.goal_pose_pub.publish(goal_pose)
-                        time.sleep(0.1)
                         print('I am going to goal')
                 else:
                     goal_pose = Pose()
                     goal_pose.position.x = self.goal[0]
                     goal_pose.position.y = self.goal[1]
                     self.goal_pose_pub.publish(goal_pose)
-                    time.sleep(0.1)
                     print('I am near goal')
             else:
                 print('my odom stack is not full yet')
@@ -76,16 +65,23 @@ class MinimalPublisher(Node):
                 goal_pose.position.x = self.goal[0]
                 goal_pose.position.y = self.goal[1]
                 self.goal_pose_pub.publish(goal_pose)
-                time.sleep(0.1)
         else:
             print('I am at the starting point')
             goal_pose = Pose()
             goal_pose.position.x = self.goal[0]
             goal_pose.position.y = self.goal[1]
             self.goal_pose_pub.publish(goal_pose)
-            time.sleep(0.1)
             self.start = False
 
+    def scan_callback(self, msg):
+        #print(msg.ranges,'\n','----------------------')
+        #num_msg = msg.ranges
+        self.num_msg = [min(range, self.MAX_LIDAR_RANGE) for range in msg.ranges]
+
+    def odom_callback(self, msg):
+        self.robot_x = msg.pose.pose.position.x
+        self.robot_y = msg.pose.pose.position.y
+        _, _, self.robot_heading = util.euler_from_quaternion(msg.pose.pose.orientation)
 
 #--------------------------------------------------------------------------------------------------------------------------------------
 
